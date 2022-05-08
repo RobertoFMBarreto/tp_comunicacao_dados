@@ -1,5 +1,6 @@
 from fileinput import filename
 from flask import Blueprint, jsonify, request, send_file
+
 from models.operation import Operation
 from models.simulation import Simulation
 from models.simulations import Simulations
@@ -50,9 +51,9 @@ def removeSimulation(simId=-1):
     return jsonify(Simulations.getSimulations())
 
 
-"""""""""""""""""""""""""""""
-          Parte 2
-"""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""
+"""        Parte 2         """
+""""""""""""""""""""""""""""""
 
 
 @simulations_bp.route('/simulation/<simId>/job/<jobId>/operation/<opId>', methods=['POST'])
@@ -65,7 +66,7 @@ def addnJobs(simId=-1, jobId=-1, opId=-1):
         if sim.id == simId:
             machine = request.get_json()['machine']
             duration = request.get_json()['duration']
-            sim.addOpJob(jobId, opId, Operation(opId, machine, duration))
+            sim.addOpJob(jobId, opId, Operation(machine, duration))
 
     return "OK"
 
@@ -103,3 +104,45 @@ def getTable(simId=-1):
     for sim in Simulations.simulations:
         if sim.id == simId:
             return send_file(sim.getTable(), attachment_filename=f'sim{simId}_table.txt')
+
+
+""""""""""""""""""""""""""""""
+"""         Parte 3        """
+""""""""""""""""""""""""""""""
+
+
+@simulations_bp.route('/simulation/<simId>/job/<jobId>/operation/<opId>/initTime/<initTime>', methods=['POST'])
+def addOpPlanoProducao(simId=-1, jobId=-1, opId=-1, initTime=-1):
+    simId = int(simId)
+    jobId = int(jobId)
+    opId = int(opId)
+    initTime = int(initTime)
+
+    for sim in Simulations.simulations:
+        if sim.id == simId:
+            val, msg = sim.addOpPlanoProducao(jobId, opId, initTime)
+            if val < 0:
+                return jsonify({'error': msg}), 400
+
+    return "OK"
+
+
+@simulations_bp.route('/simulation/<simId>/planoProducao/check', methods=['GET'])
+def checkPlanoProducao(simId=-1):
+    simId = int(simId)
+
+    for sim in Simulations.simulations:
+        if sim.id == simId:
+            val, msg = sim.checkPlanoProducao()
+            if val < 0:
+                return jsonify({'error': msg}), 400
+            else:
+                return "OK"
+
+
+@simulations_bp.route('/simulation/<simId>/planoProducao', methods=['GET'])
+def getPlanoProducao(simId=-1):
+    simId = int(simId)
+    for sim in Simulations.simulations:
+        if sim.id == simId:
+            return send_file(sim.getPlanoProducao(), attachment_filename=f'sim{simId}_planoProducao.txt')
