@@ -155,6 +155,17 @@ class Simulation:
         else:
             return 0, "OK"
 
+    def getMaxTimeJobDuration(self):
+        maxTime = {
+            'jobId': -1,
+            'time': -1
+        }
+        for jobId, operations in self.jobs.items():
+            if operations[len(operations)-1].finishTime > maxTime['time']:
+                maxTime = {'job': jobId,
+                           'time': operations[len(operations)-1].finishTime}
+        return maxTime
+
     def getPlanoProducao(self):
         table = ''
         operationsText = {}

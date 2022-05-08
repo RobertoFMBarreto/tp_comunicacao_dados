@@ -140,6 +140,16 @@ def checkPlanoProducao(simId=-1):
                 return "OK"
 
 
+@simulations_bp.route('/simulation/<simId>/planoProducao/maxTime', methods=['GET'])
+def getMaxTimeJobDuration(simId=-1):
+    simId = int(simId)
+
+    for sim in Simulations.simulations:
+        if sim.id == simId:
+            val = sim.getMaxTimeJobDuration()
+            return jsonify({'maxTime': val})
+
+
 @simulations_bp.route('/simulation/<simId>/planoProducao', methods=['GET'])
 def getPlanoProducao(simId=-1):
     simId = int(simId)
