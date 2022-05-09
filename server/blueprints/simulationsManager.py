@@ -156,3 +156,15 @@ def getPlanoProducao(simId=-1):
     for sim in Simulations.simulations:
         if sim.id == simId:
             return send_file(sim.getPlanoProducao(), attachment_filename=f'sim{simId}_planoProducao.txt')
+
+
+@simulations_bp.route('/simulation/<simId>/planoProducao/solve', methods=['GET'])
+def solvePlanoProducao(simId=-1):
+    simId = int(simId)
+    for sim in Simulations.simulations:
+        if sim.id == simId:
+            val, msg = sim.solvePlanoProducao()
+            if val < 0:
+                return jsonify({'error': msg}), 400
+            else:
+                return "OK"

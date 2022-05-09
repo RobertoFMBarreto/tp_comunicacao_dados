@@ -1,6 +1,8 @@
 
 
+from asyncio import tasks
 from models.operation import Operation
+from models.autoPlan import AutoPlan
 
 
 class Simulation:
@@ -183,3 +185,40 @@ class Simulation:
         f.write(table)
         f.close()
         return f"./tables/sim{self.id}_plano_producao.txt"
+
+    def solvePlanoProducao(self):
+        data = []
+
+        for operations in self.jobs.values():
+            task = []
+            for operation in operations:
+                task.append((operation.machine, operation.duration))
+
+            data.append(task)
+
+        # resolver o plano de producao
+        assigned_jobs, all_machines = AutoPlan.solve(data)
+        if assigned_jobs == -1 and all_machines == -1:
+            return -1, "Erro, nao foi possivel resolver o plano de producao"
+        else:
+            operationsDict = {}
+            for machine in all_machines:
+                # Sort by starting time.
+                assigned_jobs[machine].sort()
+                for assigned_task in assigned_jobs[machine]:
+                    if assigned_task.index in operationsDict:
+                        operationsDict[assigned_task.index].append({
+                            'job': assigned_task.job,
+                            'start': assigned_task.start
+                        })
+                    else:
+                        operationsDict[assigned_task.index] = [{
+                            'job': assigned_task.job,
+                            'start': assigned_task.start
+                        }]
+
+            for operationId, operations in operationsDict.items():
+                for operation in operations:
+                    self.addOpPlanoProducao(
+                        operation['job'], operationId, operation['start'])
+            return 0, "OK"
