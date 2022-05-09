@@ -117,4 +117,4 @@ print(requests.get(
     'http://localhost:5000/simulations/simulation/1/planoProducao/maxTime').text)
 
 print(requests.get(
-    'http://localhost:5000/simulations/simulation/0/planoProducao').text)
+    'http://localhost:5000/simulations/simulation/1/planoProducao').text)

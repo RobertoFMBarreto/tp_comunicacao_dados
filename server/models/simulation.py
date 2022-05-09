@@ -1,13 +1,12 @@
 
-
-from asyncio import tasks
 from models.operation import Operation
 from models.autoPlan import AutoPlan
+from app import db
 
 
 class Simulation:
     def __init__(self, nMaquinas, nJobs, nOperacoes, numero):
-        self.id = numero
+        self.id = db.Column(db.Integer, primary_key=True)
         self.nMaquinas = nMaquinas
         self.nJobs = nJobs
         self.nOperacoes = nOperacoes
@@ -169,6 +168,7 @@ class Simulation:
         return maxTime
 
     def getPlanoProducao(self):
+        basePath = '/mnt/sda5/vscode/Licenciatura/2 ano/2semestre/comunicacao_dados/TP1/server'
         table = ''
         operationsText = {}
         for jobId, operations in self.jobs.items():
@@ -181,10 +181,10 @@ class Simulation:
         for operationId, operation in operationsText.items():
             table += f'Operacao {operationId}:{operation}\n'
 
-        f = open(f"./tables/sim{self.id}_plano_producao.txt", "w+")
+        f = open(basePath+f"/tables/sim{self.id}_plano_producao.txt", "w+")
         f.write(table)
         f.close()
-        return f"./tables/sim{self.id}_plano_producao.txt"
+        return basePath+f"/tables/sim{self.id}_plano_producao.txt"
 
     def solvePlanoProducao(self):
         data = []
