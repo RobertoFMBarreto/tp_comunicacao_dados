@@ -1,28 +1,40 @@
-from flask import Blueprint, jsonify, request, send_file
-
+from flask import Blueprint, jsonify, render_template, request, send_file
+from flask_login import login_required, current_user
 from models.operation import Operation
 from models.simulation import Simulation
 from models.simulations import Simulations
+from app import db
 
 
 simulations = Blueprint('simulations', __name__)
 
 
 @simulations.route('/', methods=['POST'])
+@login_required
 def createSimulation():
-    data = request.get_json()
-    if 'maquinas' not in data or 'jobs' not in data or 'operacoes' not in data:
-        return jsonify({'error': 'Missing parameters'}), 400
-    # TODO: pensar em melhor opção para ids
-    sim = Simulation(data['maquinas'], data['jobs'],
-                     data['operacoes'], len(Simulations.simulations))
-    Simulations.add(sim)
-    return jsonify(sim.toJson())
+    maquinas = request.form.get('maquinas')
+    jobs = request.form.get('jobs')
+    operacoes = request.form.get('operacoes')
+    sim = Simulation(nMaquinas=maquinas, nJobs=jobs,
+                     nOperacoes=operacoes, user_id=current_user.id)
+    db.session.add(sim)
+    db.session.commit()
+    print(sim)
+
+    return "OK"
+
+
+@simulations.route('/criarSimulacoes', methods=['GET'])
+def criarSimulacoes():
+    return render_template('createSimulation.html')
 
 
 @simulations.route('/', methods=['GET'])
+@login_required
 def getSimulations():
-    return jsonify(Simulations.getSimulations())
+    uid = current_user.id
+    sims = Simulation.query.filter_by(user_id=uid).all()
+    return render_template('listSimulations.html', simulations=sims)
 
 
 @simulations.route('/simulation/<simId>', methods=['DELETE'])
