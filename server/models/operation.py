@@ -1,9 +1,14 @@
-class Operation:
-    def __init__(self, machine, duration):
-        self.machine = machine
-        self.duration = duration
-        self.initTime = -1
-        self.finishTime = -1
+from server import db
+from sqlalchemy_serializer import SerializerMixin
+
+
+class Operation(db.Model, SerializerMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    number= db.Column(db.Integer, nullable=False)
+    machine = db.Column(db.Integer, nullable=False)
+    duration = db.Column(db.Integer, nullable=False)
+    initTime = db.Column(db.Integer, nullable=True, default=-1)
+    job_id=db.Column(db.Integer, db.ForeignKey('job.id'), nullable=False)
 
     def setInitTime(self, initTime):
         self.initTime = initTime

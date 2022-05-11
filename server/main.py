@@ -1,5 +1,6 @@
-from flask import Blueprint, render_template
-from flask_login import login_required, current_user
+from flask import Blueprint, render_template, jsonify, request
+from flask_jwt_extended import jwt_required, get_jwt
+from .models.user import User
 
 main = Blueprint('main', __name__)
 
@@ -10,6 +11,8 @@ def index():
 
 
 @main.route('/welcome')
-@login_required
+@jwt_required()
 def profile():
-    return render_template('welcome.html', name=current_user.name)
+    email = get_jwt()['sub']
+    user = User.query.filter_by(email=email).first()
+    return jsonify({"message": f"Welcome to the API {user.name}!"}) if not request.user_agent.platform else render_template('welcome.html', name=g.user.name)

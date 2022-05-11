@@ -1,95 +1,67 @@
 
-from models.operation import Operation
-from models.autoPlan import AutoPlan
-from app import db
+from .operation import Operation
+from .job import Job
+from .autoPlan import AutoPlan
+from server import db
+from sqlalchemy_serializer import SerializerMixin
 
 
-class Simulation(db.Model):
-
+class Simulation(db.Model, SerializerMixin):
+    serialize_only = ('id', 'nMaquinas', 'nJobs', 'nOperacoes', 'user_id')
     id = db.Column(db.Integer, primary_key=True)
     nMaquinas = db.Column(db.Integer, nullable=False)
     nJobs = db.Column(db.Integer, nullable=False)
     nOperacoes = db.Column(db.Integer, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
-    # jobs = {
-    #     x: [Operation(-1, -1) for y in range(0, nOperacoes)] for x in range(0, nJobs)
-    # }
-
-    def toJson() -> dict:
-
-        return {
-            'id': id,
-            'nMaquinas': nMaquinas,
-            'nJobs': nJobs,
-            'nOperacoes': nOperacoes
-        }
-
-    def addOpJob(self, jobId, opId, operation):
-        jobs[jobId][opId] = operation
-
-    def getOpJob(self, jobId, opId):
-        if jobId in jobs:
-            if opId < len(jobs[jobId]):
-                operation = jobs[jobId][opId]
-                return 1, f"(M{operation.machine}, {operation.duration})"
-            else:
-                return -1, f"Erro, a operacao {opId} nao existe"
-        else:
-            return -1, f"Erro, o Job {jobId} nao existe"
-
-    def checkTable(self):
+    @staticmethod
+    def checkTable(simId, nJobs, nOperacoes, nMaquinas):
         # verificar se todos os jobs foram criados
+        jobs = Job.query.filter_by(sim_id=simId).all()
+        if not jobs:
+            return "Nenhum job criado", 400
+
         if nJobs != len(jobs):
             jobsNumbers = [x for x in range(0, nJobs)]
-            jobsEmFalta = [x for x in jobsNumbers if x not in jobs.keys()]
+            jobsEmFalta = [x.name for x in jobs if x.name not in jobs.keys()]
             if len(jobsEmFalta) > 0:
                 if len(jobsEmFalta) > 1:
-                    return -1, f"Os jobs {jobsEmFalta} estão em falta"
+                    return f"Os jobs {jobsEmFalta} estão em falta", 400
                 else:
-                    return -1, f"O job {jobsEmFalta[0]} está em falta"
+                    return f"O job {jobsEmFalta[0]} está em falta", 400
 
         # verificar se todas as operações foram criadas
-        for jobId, operacoes in jobs.items():
+        allOperations = []
+        for job in jobs:
+            operations = Operation.query.filter_by(job_id=job.id).all()
+            allOperations.append(operations)
             operationsNumbers = [x for x in range(0, nOperacoes)]
-            operationsIds = [i for i in range(
-                0, len(operacoes)) if operacoes[i].machine != -1]
+            operationsIds = [
+                x.number for x in Operation.query.filter_by(job_id=job.id).all()]
             operationsEmFalta = list(
                 set(operationsNumbers) - set(operationsIds))
             if len(operationsEmFalta) > 0:
                 if len(operationsEmFalta) > 1:
-                    return -1, f"Erro, as operacoes {operationsEmFalta} estao em falta no Job{jobId}"
+                    return f"Erro, as operacoes {operationsEmFalta} estao em falta no Job{job.name}", 400
                 else:
-                    return -1, f"Erro, a operacao {operationsEmFalta[0]} esta em falta no Job{jobId}"
+                    return f"Erro, a operacao {operationsEmFalta[0]} esta em falta no Job{job.name}", 400
 
         # verificar se todas as maquinas foram utilizadas
-        for operacoes in jobs.values():
+        for job in jobs:
+            operations = Operation.query.filter_by(job_id=job.id).all()
             existMachines = [
-                operation.machine for operation in operacoes if operation.machine != -1]
+                operation.machine for operation in operations]
             machines = [x for x in range(0, nMaquinas)]
             machinesEmFalta = list(set(machines) - set(existMachines))
             if len(machinesEmFalta) > 0:
                 if len(machinesEmFalta) > 1:
-                    return -1, f"Erro, as maquinas {machinesEmFalta} estao em falta"
+                    return f"Erro, as maquinas {machinesEmFalta} estao em falta", 400
                 else:
-                    return -1, f"Erro, a maquina {machinesEmFalta[0]} esta em falta"
+                    return f"Erro, a maquina {machinesEmFalta[0]} esta em falta", 400
 
-        return 0, "OK"
+        return "OK", 200
 
     # TODO: Após o término, apenas se pode alterar o valor de cada operação, mas não introduzir novos valores.
-
-    def getTable(self):
-        table = ''
-        for jobId, operations in jobs.items():
-            table += f'Job {jobId}:'
-            for operation in operations:
-                table += f'\t({operation.machine}, {operation.duration})'
-            table += '\n'
-
-        f = open(f"./tables/sim{id}_table.txt", "w+")
-        f.write(table)
-        f.close()
-        return f"./tables/sim{id}_table.txt"
 
     def isMachineBeingUsed(self, machine, initTime, finishTime):
         for jobId, operations in jobs.items():

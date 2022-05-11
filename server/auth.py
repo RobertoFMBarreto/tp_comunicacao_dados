@@ -1,8 +1,9 @@
-from flask import Blueprint, flash, redirect, render_template, url_for, request
-from flask_login import login_required, login_user, logout_user
+from flask import Blueprint, flash, redirect, render_template, url_for, request, jsonify
+from flask_jwt_extended import create_access_token
 from werkzeug.security import generate_password_hash, check_password_hash
-from models.user import User
-from app import db
+from .models.user import User
+from server import db
+
 
 auth = Blueprint('auth', __name__)
 
@@ -84,15 +85,11 @@ def login_post():
 
         user = User.query.filter_by(email=email).first()
 
-        # check if the user actually exists
-        # take the user-supplied password, hash it, and compare it to the hashed password in the database
         if not user or not check_password_hash(user.password, password):
-            # if the user doesn't exist or password is wrong, reload the page
             return 'Erro! Por favor verifique as suas credenciais e tente denovo.', 400
 
-        # if the above check passes, then we know the user has the right credentials
-        login_user(user, remember=False)
-        return "OK"
+        access_token = create_access_token(identity=email)
+        return jsonify(access_token=access_token), 200
 
     else:
         # login code goes here
@@ -102,20 +99,14 @@ def login_post():
 
         user = User.query.filter_by(email=email).first()
 
-        # check if the user actually exists
-        # take the user-supplied password, hash it, and compare it to the hashed password in the database
         if not user or not check_password_hash(user.password, password):
             flash('Erro! Por favor verifique as suas credenciais e tente denovo.')
-            # if the user doesn't exist or password is wrong, reload the page
             return redirect(url_for('auth.login'))
 
-        # if the above check passes, then we know the user has the right credentials
-        login_user(user, remember=remember)
         return redirect(url_for('main.profile'))
 
 
 @auth.route('/logout')
-@login_required
 def logout():
-    logout_user()
+
     return "OK" if not request.user_agent.platform else redirect(url_for('main.index'))
