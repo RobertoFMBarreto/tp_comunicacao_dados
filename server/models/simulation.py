@@ -62,64 +62,72 @@ class Simulation(db.Model, SerializerMixin):
         return "OK", 200
 
     # TODO: Após o término, apenas se pode alterar o valor de cada operação, mas não introduzir novos valores.
-
-    def isMachineBeingUsed(self, machine, initTime, finishTime):
-        for jobId, operations in jobs.items():
+    @staticmethod
+    def isMachineBeingUsed(jobs, opId, machine, initTime, finishTime):
+        for job in jobs:
+            operations = Operation.query.filter_by(
+                job_id=job.id).order_by(Operation.number).all()
             for i in range(0, len(operations)):
-                if operations[i].machine != -1 and operations[i].machine == machine and operations[i].initTime != -1:
-                    if initTime >= operations[i].finishTime or finishTime <= operations[i].initTime:
+                if operations[i].number != opId and operations[i].machine != -1 and operations[i].machine == machine and operations[i].initTime != -1:
+                    opFinishTime = operations[i].initTime + \
+                        operations[i].duration
+                    if initTime >= opFinishTime or finishTime <= operations[i].initTime:
                         pass
                     else:
-                        return jobId, i
+                        return job.id, i
         return -1, -1
 
-    def isAfterLastOperation(self, initTime, jobId, opId):
+    @staticmethod
+    def isAfterLastOperation(initTime, jobId, opId):
         if opId == 0:
             return -1
-        for i in reversed(range(opId)):
-            previousOperation = jobs[jobId][i]
+        operations = Operation.query.filter_by(
+            job_id=jobId).order_by(Operation.number).all()
+        operations = [x for x in operations if x.number < opId]
+        for i in reversed(range(len(operations))):
+            previousOperation = operations[i]
+
             if previousOperation.initTime != -1:
-                if previousOperation.finishTime <= initTime:
+                previousFinishTime = previousOperation.initTime + previousOperation.duration
+                if previousFinishTime <= initTime:
                     return -1
                 else:
                     return i
         return -1
 
-    def isBeforeNextOperation(self, finishTime, jobId, opId):
-        if opId == len(jobs[jobId]) - 1:
+    @staticmethod
+    def isBeforeNextOperation(finishTime, jobId, opId, nOperacoes):
+        if opId == nOperacoes - 1:
             return -1
 
-        for i in range(opId + 1, len(jobs[jobId])):
-            nextOperation = jobs[jobId][i]
+        operations = Operation.query.filter_by(
+            job_id=jobId).order_by(Operation.number).all()
+        operations = [x for x in operations if x.number > opId]
+
+        for i in range(opId + 1, len(operations)):
+            nextOperation = operations[i]
             if nextOperation.initTime != -1:
+                print(nextOperation.initTime, finishTime)
                 if nextOperation.initTime >= finishTime:
                     return -1
                 else:
                     return i
         return -1
 
-    def addOpPlanoProducao(self, jobId, opId, initTime):
-        operacao = jobs[jobId][opId]
-
-        if self.isAfterLastOperation(initTime, jobId, opId) != -1:
-            return -1, f"Erro, a operacao {opId} tem de ser depois da operacao {opId}"
-        if self.isBeforeNextOperation(initTime, jobId, opId) != -1:
-            return -1, f"Erro, a operacao {opId} tem de ser antes da operacao {opId}"
-        else:
-            indexJob, indexOp = self.isMachineBeingUsed(
-                operacao.machine, initTime, initTime + operacao.duration)
-            if indexJob == -1 or indexOp == -1:
-                operacao.setInitTime(initTime)
-                return 0, "OK"
-            else:
-                return -1, f"""Erro, a maquina {operacao.machine} esta a ser utilizada no Job {indexJob} na operacao {indexOp} e apenas termina no tempo {jobs[indexJob][indexOp].finishTime}"""
-
-    def checkPlanoProducao(self):
+    @staticmethod
+    def checkPlanoProducao(simId):
+        jobs = Job.query.filter_by(sim_id=simId).all()
+        for job in jobs:
+            print(job.name, job.id)
         valuesFalta = []
-        for jobId, operations in jobs.items():
-            for i in range(0, len(operations)):
-                if operations[i].initTime == -1:
-                    valuesFalta.append(f"Job {jobId} - Operacao {i}")
+        for job in jobs:
+            operations = Operation.query.filter_by(job_id=job.id).all()
+            for op in operations:
+                print(op.number, op.initTime)
+            for operation in operations:
+                if operation.initTime == -1:
+                    valuesFalta.append(
+                        f"Job {job.name} - Operacao {operation.number}")
 
         if len(valuesFalta) > 0:
             msg = 'Erro, as operacoes:\n'
@@ -130,27 +138,33 @@ class Simulation(db.Model, SerializerMixin):
         else:
             return 0, "OK"
 
-    def getMaxTimeJobDuration(self):
+    @staticmethod
+    def getMaxTimeJobDuration(jobs):
         maxTime = {
-            'jobId': -1,
+            'job': -1,
             'time': -1
         }
-        for jobId, operations in jobs.items():
-            if operations[len(operations)-1].finishTime > maxTime['time']:
-                maxTime = {'job': jobId,
-                           'time': operations[len(operations)-1].finishTime}
+        for job in jobs:
+            operations = Operation.query.filter_by(job_id=job.id).all()
+            duration = operations[len(operations)-1].duration
+            initTime = operations[len(operations)-1].initTime
+            if initTime + duration > maxTime['time']:
+                maxTime = {'job': job.name,
+                           'time': duration + initTime}
         return maxTime
 
-    def getPlanoProducao(self):
+    @staticmethod
+    def getPlanoProducao(jobs):
         basePath = '/mnt/sda5/vscode/Licenciatura/2 ano/2semestre/comunicacao_dados/TP1/server'
         table = ''
         operationsText = {}
-        for jobId, operations in jobs.items():
+        for job in jobs:
+            operations = Operation.query.filter_by(job_id=job.id).all()
             for i in range(0, len(operations)):
                 if i in operationsText.keys():
-                    operationsText[i] += f'\t({jobId},{i},{operations[i].machine},{operations[i].initTime},{operations[i].duration},{operations[i].finishTime})'
+                    operationsText[i] += f'\t({job.name},{i},{operations[i].machine},{operations[i].initTime},{operations[i].duration},{operations[i].initTime+operations[i].duration})'
                 else:
-                    operationsText[i] = f'\t({jobId},{i},{operations[i].machine},{operations[i].initTime},{operations[i].duration},{operations[i].finishTime})'
+                    operationsText[i] = f'\t({job.name},{i},{operations[i].machine},{operations[i].initTime},{operations[i].duration},{operations[i].initTime+operations[i].duration})'
 
         for operationId, operation in operationsText.items():
             table += f'Operacao {operationId}:{operation}\n'
@@ -160,11 +174,37 @@ class Simulation(db.Model, SerializerMixin):
         f.close()
         return basePath+f"/tables/sim{id}_plano_producao.txt"
 
-    def solvePlanoProducao(self):
+    def addOpPlanoProducao(jobId, opId, job,  initTime,  operation, sim):
+        isAfterNextOperation = Simulation.isAfterLastOperation(
+            initTime, jobId, opId)
+        if isAfterNextOperation != -1:
+            return f"Erro, a operacao {opId} tem de ser depois da operacao {isAfterNextOperation}", 400
+
+        isBeforeNextOperation = Simulation.isBeforeNextOperation(
+            initTime + operation.duration, job.id, opId, sim.nOperacoes)
+        if isBeforeNextOperation != -1:
+            return f"Erro, a operacao {opId} tem de ser antes da operacao {isBeforeNextOperation}", 400
+
+        jobs = Job.query.filter_by(sim_id=sim.id).all()
+        indexJob, indexOp = Simulation.isMachineBeingUsed(
+            jobs, opId, operation.machine, initTime, (initTime+operation.duration))
+
+        if indexJob == -1 or indexOp == -1:
+            operation.initTime = initTime
+            db.session.commit()
+            return "OK", 200
+        else:
+            job = Job.query.filter_by(id=indexJob, sim_id=sim.id).first()
+            op = Operation.query.filter_by(
+                number=indexOp, job_id=job.id).first()
+            return f"Erro, a maquina {operation.machine} esta a ser utilizada no Job {indexJob} na operacao {indexOp} e apenas termina no tempo {op.initTime + op.duration}", 400
+
+    def solvePlanoProducao(jobs, sim):
         data = []
 
-        for operations in jobs.values():
+        for job in jobs:
             task = []
+            operations = Operation.query.filter_by(job_id=job.id).all()
             for operation in operations:
                 task.append((operation.machine, operation.duration))
 
@@ -181,6 +221,7 @@ class Simulation(db.Model, SerializerMixin):
                 assigned_jobs[machine].sort()
                 for assigned_task in assigned_jobs[machine]:
                     if assigned_task.index in operationsDict:
+                        print(assigned_task)
                         operationsDict[assigned_task.index].append({
                             'job': assigned_task.job,
                             'start': assigned_task.start
@@ -193,6 +234,10 @@ class Simulation(db.Model, SerializerMixin):
 
             for operationId, operations in operationsDict.items():
                 for operation in operations:
-                    self.addOpPlanoProducao(
-                        operation['job'], operationId, operation['start'])
+                    job = Job.query.filter_by(
+                        name=operation['job'], sim_id=sim.id).first()
+                    op = Operation.query.filter_by(
+                        job_id=job.id, number=operationId).first()
+                    Simulation.addOpPlanoProducao(
+                        operation['job'], operationId, job, operation['start'], op, sim)
             return 0, "OK"

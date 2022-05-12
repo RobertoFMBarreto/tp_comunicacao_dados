@@ -80,7 +80,7 @@ def removeSimulation(simId=-1):
 """"""""""""""""""""""""""""""
 
 
-@simulations.route('/simulation/<simId>/job/<jobId>/operation/<opId>', methods=['POST'])
+@simulations.route('/<simId>/job/<jobId>/operation/<opId>', methods=['POST'])
 @jwt_required()
 def addnJobs(simId=-1, jobId=-1, opId=-1):
     verify_jwt_in_request()
@@ -116,7 +116,7 @@ def addnJobs(simId=-1, jobId=-1, opId=-1):
     return "OK"
 
 
-@simulations.route('/simulation/<simId>/job/<jobId>/operation/<opId>', methods=['GET'])
+@simulations.route('/<simId>/job/<jobId>/operation/<opId>', methods=['GET'])
 @jwt_required()
 def getOperation(simId=-1, jobId=-1, opId=-1):
     verify_jwt_in_request()
@@ -141,7 +141,7 @@ def getOperation(simId=-1, jobId=-1, opId=-1):
     return jsonify(maquina=operation.to_dict()['machine'], duracao=operation.to_dict()['duration']) if not request.user_agent.platform else render_template('operation.html', operation=operation)
 
 
-@simulations.route('/simulation/<simId>/checkTable', methods=['GET'])
+@simulations.route('/<simId>/checkTable', methods=['GET'])
 @jwt_required()
 def checkTable(simId=-1):
     verify_jwt_in_request()
@@ -159,7 +159,7 @@ def checkTable(simId=-1):
         return "OK"
 
 
-@simulations.route('/simulation/<simId>/table', methods=['GET'])
+@simulations.route('/<simId>/table', methods=['GET'])
 @jwt_required()
 def getTable(simId=-1):
     verify_jwt_in_request()
@@ -196,60 +196,111 @@ def getTable(simId=-1):
 """"""""""""""""""""""""""""""
 
 
-@simulations.route('/simulation/<simId>/job/<jobId>/operation/<opId>/initTime/<initTime>', methods=['POST'])
+@simulations.route('/<simId>/job/<jobId>/operation/<opId>/initTime/<initTime>', methods=['POST'])
+@jwt_required()
 def addOpPlanoProducao(simId=-1, jobId=-1, opId=-1, initTime=-1):
+    verify_jwt_in_request()
+    email = get_jwt()['sub']
+    uid = User.query.filter_by(email=email).first().id
+
     simId = int(simId)
     jobId = int(jobId)
     opId = int(opId)
     initTime = int(initTime)
 
-    for sim in Simulations.simulations:
-        if sim.id == simId:
-            val, msg = sim.addOpPlanoProducao(jobId, opId, initTime)
-            if val < 0:
-                return jsonify({'error': msg}), 400
+    sim = Simulation.query.filter_by(id=simId, user_id=uid).first()
+    if not sim:
+        return "Simulação inexistente", 400
 
-    return "OK"
+    job = Job.query.filter_by(name=jobId, sim_id=simId).first()
+    if not job:
+        return "Job inexistente", 400
+
+    operation = Operation.query.filter_by(number=opId, job_id=job.id).first()
+    if not operation:
+        return "Operação inexistente", 400
+
+    msg, val = Simulation.addOpPlanoProducao(
+        jobId, opId, job, initTime, operation, sim)
+    if val == 400:
+        return msg, 400
+    else:
+        return "OK"
 
 
-@simulations.route('/simulation/<simId>/planoProducao/check', methods=['GET'])
+@simulations.route('/<simId>/planoProducao/check', methods=['GET'])
+@jwt_required()
 def checkPlanoProducao(simId=-1):
     simId = int(simId)
+    verify_jwt_in_request()
+    email = get_jwt()['sub']
+    uid = User.query.filter_by(email=email).first().id
 
-    for sim in Simulations.simulations:
-        if sim.id == simId:
-            val, msg = sim.checkPlanoProducao()
-            if val < 0:
-                return jsonify({'error': msg}), 400
-            else:
-                return "OK"
+    sim = Simulation.query.filter_by(id=simId, user_id=uid).first()
+    if not sim:
+        return "Simulação inexistente", 400
+
+    val, msg = Simulation.checkPlanoProducao(sim.id)
+    if val < 0:
+        return msg, 400
+    else:
+        return "OK"
 
 
-@simulations.route('/simulation/<simId>/planoProducao/maxTime', methods=['GET'])
+@simulations.route('/<simId>/planoProducao/maxTime', methods=['GET'])
+@jwt_required()
 def getMaxTimeJobDuration(simId=-1):
     simId = int(simId)
+    verify_jwt_in_request()
+    email = get_jwt()['sub']
+    uid = User.query.filter_by(email=email).first().id
 
-    for sim in Simulations.simulations:
-        if sim.id == simId:
-            val = sim.getMaxTimeJobDuration()
-            return jsonify({'maxTime': val})
+    sim = Simulation.query.filter_by(id=simId, user_id=uid).first()
+    if not sim:
+        return "Simulação inexistente", 400
+
+    maxTime = Simulation.getMaxTimeJobDuration(
+        Job.query.filter_by(sim_id=sim.id).all())
+    if maxTime['job'] == -1:
+        return "Nenhum job encontrado", 400
+    else:
+        return jsonify(maxTime)
 
 
-@simulations.route('/simulation/<simId>/planoProducao', methods=['GET'])
+@simulations.route('/<simId>/planoProducao', methods=['GET'])
+@jwt_required()
 def getPlanoProducao(simId=-1):
+    verify_jwt_in_request()
+    email = get_jwt()['sub']
+    uid = User.query.filter_by(email=email).first().id
     simId = int(simId)
-    for sim in Simulations.simulations:
-        if sim.id == simId:
-            return send_file(sim.getPlanoProducao(), attachment_filename=f'sim{simId}_planoProducao.txt')
+
+    sim = Simulation.query.filter_by(id=simId, user_id=uid).first()
+    if not sim:
+        return "Simulação inexistente", 400
+
+    path = Simulation.getPlanoProducao(
+        Job.query.filter_by(sim_id=sim.id).all())
+
+    return send_file(path, attachment_filename=f'user_{uid}_sim{simId}_planoProducao.txt')
 
 
-@simulations.route('/simulation/<simId>/planoProducao/solve', methods=['GET'])
+@simulations.route('/<simId>/planoProducao/solve', methods=['GET'])
+@jwt_required()
 def solvePlanoProducao(simId=-1):
+    verify_jwt_in_request()
+    email = get_jwt()['sub']
+    uid = User.query.filter_by(email=email).first().id
     simId = int(simId)
-    for sim in Simulations.simulations:
-        if sim.id == simId:
-            val, msg = sim.solvePlanoProducao()
-            if val < 0:
-                return jsonify({'error': msg}), 400
-            else:
-                return "OK"
+
+    sim = Simulation.query.filter_by(id=simId, user_id=uid).first()
+    if not sim:
+        return "Simulação inexistente", 400
+
+    jobs = Job.query.filter_by(sim_id=sim.id).all()
+
+    val, msg = Simulation.solvePlanoProducao(jobs, sim)
+    if val < 0:
+        return jsonify({'error': msg}), 400
+    else:
+        return "OK"
