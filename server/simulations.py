@@ -299,6 +299,9 @@ def solvePlanoProducao(simId=-1):
 
     jobs = Job.query.filter_by(sim_id=sim.id).all()
 
+    if Simulation.checkPlanoProducao(sim.id)[0] != -1:
+        return "Plano de produção já foi resolvido ou preenchido", 400
+
     val, msg = Simulation.solvePlanoProducao(jobs, sim)
     if val < 0:
         return jsonify({'error': msg}), 400

@@ -145,7 +145,8 @@ class Simulation(db.Model, SerializerMixin):
             'time': -1
         }
         for job in jobs:
-            operations = Operation.query.filter_by(job_id=job.id).all()
+            operations = Operation.query.filter_by(
+                job_id=job.id).order_by(Operation.number).all()
             duration = operations[len(operations)-1].duration
             initTime = operations[len(operations)-1].initTime
             if initTime + duration > maxTime['time']:
@@ -159,7 +160,8 @@ class Simulation(db.Model, SerializerMixin):
         table = ''
         operationsText = {}
         for job in jobs:
-            operations = Operation.query.filter_by(job_id=job.id).all()
+            operations = Operation.query.filter_by(
+                job_id=job.id).order_by(Operation.number).all()
             for i in range(0, len(operations)):
                 if i in operationsText.keys():
                     operationsText[i] += f'\t({job.name},{i},{operations[i].machine},{operations[i].initTime},{operations[i].duration},{operations[i].initTime+operations[i].duration})'
@@ -204,12 +206,12 @@ class Simulation(db.Model, SerializerMixin):
 
         for job in jobs:
             task = []
-            operations = Operation.query.filter_by(job_id=job.id).all()
+            operations = Operation.query.filter_by(
+                job_id=job.id).order_by(Operation.number).all()
             for operation in operations:
                 task.append((operation.machine, operation.duration))
 
             data.append(task)
-
         # resolver o plano de producao
         assigned_jobs, all_machines = AutoPlan.solve(data)
         if assigned_jobs == -1 and all_machines == -1:
@@ -221,7 +223,7 @@ class Simulation(db.Model, SerializerMixin):
                 assigned_jobs[machine].sort()
                 for assigned_task in assigned_jobs[machine]:
                     if assigned_task.index in operationsDict:
-                        print(assigned_task)
+
                         operationsDict[assigned_task.index].append({
                             'job': assigned_task.job,
                             'start': assigned_task.start
@@ -233,11 +235,14 @@ class Simulation(db.Model, SerializerMixin):
                         }]
 
             for operationId, operations in operationsDict.items():
+                print(operationId, operations)
+
+            for operationId, operations in operationsDict.items():
                 for operation in operations:
                     job = Job.query.filter_by(
                         name=operation['job'], sim_id=sim.id).first()
                     op = Operation.query.filter_by(
                         job_id=job.id, number=operationId).first()
-                    Simulation.addOpPlanoProducao(
-                        operation['job'], operationId, job, operation['start'], op, sim)
+                    op.initTime = operation['start']
+                    db.session.commit()
             return 0, "OK"

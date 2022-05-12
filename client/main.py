@@ -27,11 +27,18 @@ print(requests.post('http://localhost:5000/simulations/',
       headers={"Authorization": f"Bearer {token}"},
       json={'maquinas': 3, 'jobs': 3, 'operacoes': 3}).text)
 
+
+print(requests.post('http://localhost:5000/simulations/',
+      headers={"Authorization": f"Bearer {token}"},
+      json={'maquinas': 3, 'jobs': 3, 'operacoes': 3}).text)
+
 # obter as simulações
 simulacao = requests.get('http://localhost:5000/simulations/',
                          headers={"Authorization": f"Bearer {token}"}).text
 print(simulacao)
 simulacaoId = json.loads(simulacao)['simulacoes'][0]['id']
+simulacaoId1 = json.loads(simulacao)['simulacoes'][len(
+    json.loads(simulacao)['simulacoes'])-1]['id']
 
 
 # remover simulação
@@ -139,15 +146,61 @@ print(requests.get(
     f'http://localhost:5000/simulations/{simulacaoId}/planoProducao',
     headers={"Authorization": f"Bearer {token}"}).text)
 
+
+print(requests.post(f'http://localhost:5000/simulations/{simulacaoId1}/job/0/operation/0',
+      headers={"Authorization": f"Bearer {token}"},
+      json={'machine': 0, 'duration': 3}).text)
+print(requests.post(f'http://localhost:5000/simulations/{simulacaoId1}/job/0/operation/1',
+      headers={"Authorization": f"Bearer {token}"},
+      json={'machine': 1, 'duration': 2}).text)
+print(requests.post(f'http://localhost:5000/simulations/{simulacaoId1}/job/0/operation/2',
+      headers={"Authorization": f"Bearer {token}"},
+      json={'machine': 2, 'duration': 2}).text)
+
+print(requests.post(f'http://localhost:5000/simulations/{simulacaoId1}/job/1/operation/0',
+      headers={"Authorization": f"Bearer {token}"},
+      json={'machine': 0, 'duration': 2}).text)
+print(requests.post(f'http://localhost:5000/simulations/{simulacaoId1}/job/1/operation/2',
+      headers={"Authorization": f"Bearer {token}"},
+      json={'machine': 1, 'duration': 4}).text)
+print(requests.post(f'http://localhost:5000/simulations/{simulacaoId1}/job/1/operation/1',
+      headers={"Authorization": f"Bearer {token}"},
+      json={'machine': 2, 'duration': 1}).text)
+
+print(requests.post(f'http://localhost:5000/simulations/{simulacaoId1}/job/2/operation/2',
+      headers={"Authorization": f"Bearer {token}"},
+      json={'machine': 0, 'duration': 2}).text)
+print(requests.post(f'http://localhost:5000/simulations/{simulacaoId1}/job/2/operation/0',
+      headers={"Authorization": f"Bearer {token}"},
+      json={'machine': 1, 'duration': 4}).text)
+print(requests.post(f'http://localhost:5000/simulations/{simulacaoId1}/job/2/operation/1',
+      headers={"Authorization": f"Bearer {token}"},
+      json={'machine': 2, 'duration': 3}).text)
+
+# get operation
+print(requests.get(f'http://localhost:5000/simulations/{simulacaoId1}/job/2/operation/2',
+      headers={"Authorization": f"Bearer {token}"}).text)
+
+
+# check table
+print(requests.get(f'http://localhost:5000/simulations/{simulacaoId1}/checkTable',
+      headers={"Authorization": f"Bearer {token}"}).text)
+
+
+# get table
+print(requests.get(
+    f'http://localhost:5000/simulations/{simulacaoId1}/table',
+    headers={"Authorization": f"Bearer {token}"}).text)
+
 # # solve plano produção
 print(requests.get(
-    'http://localhost:5000/simulations/1/planoProducao/solve',
+    f'http://localhost:5000/simulations/{simulacaoId1}/planoProducao/solve',
     headers={"Authorization": f"Bearer {token}"}).text)
 
 print(requests.get(
-    'http://localhost:5000/simulations/1/planoProducao/maxTime',
+    f'http://localhost:5000/simulations/{simulacaoId1}/planoProducao/maxTime',
     headers={"Authorization": f"Bearer {token}"}).text)
 
 print(requests.get(
-    'http://localhost:5000/simulations/1/planoProducao',
+    f'http://localhost:5000/simulations/{simulacaoId1}/planoProducao',
     headers={"Authorization": f"Bearer {token}"}).text)
