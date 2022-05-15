@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>JobShop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css"/>
+
+    <style>
+        .hero.is-primary {
+            background-color: #242424;
+        }
+
+        .hero.is-primary .navbar-link.is-active,
+        .hero.is-primary .navbar-link:hover,
+        .hero.is-primary a.navbar-item.is-active,
+        .hero.is-primary a.navbar-item:hover {
+            background-color: #202020;
+        }
+
+        .table th {
+            text-align: center;
+        }
+
+        .table td {
+            text-align: center;
+        }
+
+        .menu li:hover {
+            color: black;
+        }
+
+        .menu .is-active:hover {
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+<section class="hero is-primary is-fullheight">
+
+    <div class="hero-head">
+        <nav class="navbar">
+            <div class="container">
+                <div id="navbarMenuHeroA" class="navbar-menu">
+                    <div class="navbar-end">
+                        <a href="{{ url_for('main.index') }}" class="navbar-item">
+                            Inicio
+                        </a>
+
+                        <a href="{{ url_for('main.login') }}" class="navbar-item">
+                            Iniciar Sessão
+                        </a>
+                        <a href="{{ url_for('main.signup') }}" class="navbar-item">
+                            Registar
+                        </a>
+
+                        <a href="{{ url_for('main.verSimulacoes') }}" class="navbar-item">
+                            Ver Simulações
+                        </a>
+                        <a href="{{ url_for('main.criarSimulacoes') }}" class="navbar-item">
+                            Criar Simulações
+                        </a>
+                        <a href="{{ url_for('auth.logout') }}" class="navbar-item">
+                            Sair
+                        </a>
+
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+
+    <div class="hero-body">
+        <aside class="menu">
+            <p class="menu-label">
+                Definir Simulação
+            </p>
+            <ul class="menu-list">
+                <li><a class="menu-item" data-value="1">Inserir Operação</a></li>
+                <li><a class="menu-item is-active" data-value="2">Ver Operação</a></li>
+                <li><a class="menu-item" data-value="3">Verificar Tabela de Operações</a></li>
+                <li><a class="menu-item" data-value="4">Ver Tabela de Operações</a></li>
+            </ul>
+            <p class="menu-label">
+                Plano Produção
+            </p>
+            <ul class="menu-list">
+                <li><a class="menu-item" data-value="5">Inserir tempos</a></li>
+                <li><a class="menu-item" data-value="6">Editar tempos</a></li>
+                <li><a class="menu-item" data-value="7">Verificar tempos</a></li>
+                <li><a class="menu-item" data-value="8">Ver Plano Produção</a></li>
+            </ul>
+        </aside>
+        <div class="container has-text-centered">
+            <div class="column is-4 is-offset-4" id="page-content">
+
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+<script>
+    function getCookieValue(name) {
+        let cookieArr = document.cookie.split(";");
+        for (let i = 0; i < cookieArr.length; i++) {
+            let cookiePair = cookieArr[i].split("=");
+            if (name === cookiePair[0].trim()) {
+                return decodeURIComponent(cookiePair[1]);
+            }
+        }
+        return null;
+    }
+
+    function get_cookie(name) {
+        return document.cookie.split(';').some(c => {
+            return c.trim().startsWith(name + '=');
+        });
+    }
+
+    function delete_cookie(name) {
+        if (get_cookie(name)) {
+            document.cookie = name + "=" +
+                ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
+        }
+    }
+
+    const insertOpMachineDuration = `
+        <h3 class="title">Inserir Operação</h3>
+        <div class="box" id="box">
+
+            <form id="insertOp" data-value="{{simId}}">
+                <div class="field">
+                    <div class="control">
+                        <input class="input is-large" type="number" name="operacao" id="operacao"
+                               placeholder="Número da operação" autofocus="">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <div class="control">
+                        <input class="input is-large" type="number" name="job" id="job"
+                               placeholder="Número do job" autofocus="">
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="control">
+                        <input class="input is-large" type="number" name="maquina" id="maquina"
+                               placeholder="Número da máquina" autofocus="">
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="control">
+                        <input class="input is-large" type="number" name="duracao" id="duracao"
+                               placeholder="Duracao da operação" autofocus="">
+                    </div>
+                </div>
+                <button class="button is-block is-info is-large is-fullwidth">Submeter</button>
+            </form>
+        </div>
+    `
+
+    const allA = document.getElementsByClassName('menu-item')
+
+    function resetA() {
+        for (let a of allA) {
+            a.classList.remove('is-active')
+        }
+    }
+
+    const content = document.getElementById('page-content')
+    for (let a of allA) {
+        a.addEventListener('click', function () {
+            resetA()
+            a.classList.toggle('is-active')
+
+            const value = a.getAttribute('data-value')
+
+            if (value === '1') {
+                console.log('hello')
+                content.innerHTML = insertOpMachineDuration
+                getInsertOpMachineDurationContent()
+            }
+        })
+    }
+    const token = getCookieValue('token')
+
+    function getInsertOpMachineDurationContent(simId) {
+        const form = document.getElementById('insertOp');
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault()
+            const operacao = form.querySelector('#operacao');
+            const job = form.querySelector('#job');
+            const maquina = form.querySelector('#maquina');
+            const duracao = form.querySelector('#duracao');
+
+            fetch(`http://localhost:5000/api/v1/simulations/{{simId}}/job/${job.value}/operation/${operacao.value}`, {
+                method: "POST",
+                headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+                body: JSON.stringify({
+                    "machine": maquina.value,
+                    "duration": duracao.value
+                })
+            }).then(res => {
+                console.log(res)
+                if (res.status === 401) {
+                    window.location.href = 'http://localhost:5000/api/v1/web/login'
+                } else if (res.status === 400) {
+                    res.text().then(value => {
+                        if ("new_token" in value) {
+                            delete_cookie('token', null, null)
+                            document.cookie += `token=${value['new_token']};`
+                            value=value['data']
+                        }
+                        const noti = document.getElementById('noti');
+                        if (noti) {
+                            noti.innerHTML = value
+                        } else {
+                            const text = box.innerHTML
+                            box.innerHTML = `<div class="notification is-danger" id="noti">${value}</div>` + text
+                        }
+                    })
+                } else {
+                    res.text().then(value => {
+                        if ("new_token" in value) {
+                            delete_cookie('token', null, null)
+                            document.cookie += `token=${value['new_token']};`
+                            value=value['data']
+                        }
+                        const noti = document.getElementById('noti');
+                        if (noti) {
+                            noti.innerHTML = value
+                        } else {
+                            const text = box.innerHTML
+                            box.innerHTML = `<div class="notification is-success" id="noti">${value}</div>` + text
+                        }
+                    })
+                }
+            })
+
+        })
+    }
+</script>
+
+
+</html>
