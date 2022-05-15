@@ -1,7 +1,9 @@
 from server import db
+from sqlalchemy_serializer import SerializerMixin
 
 
-class User(db.Model):
+class User(SerializerMixin, db.Model):
+    serialize_only = ('id', 'email', 'name')
     # primary keys are required by SQLAlchemy
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(100), unique=True)

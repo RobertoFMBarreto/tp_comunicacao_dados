@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="column is-4 is-offset-4">
+  <h3 class="title">Sign Up</h3>
+  <div class="box" id="box">
+
+    <form id="signup">
+        <div class="field">
+          <div class="control">
+            <input class="input is-large" type="email" name="email" id="email" placeholder="Email" autofocus="">
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="control">
+            <input class="input is-large" type="text" name="name" id="name" placeholder="Name" autofocus="">
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="control">
+            <input class="input is-large" type="password" name="password" id="password" placeholder="Password">
+          </div>
+        </div>
+
+      </form>
+      <button class="button is-block is-info is-large is-fullwidth" id="signupBtn">Sign Up</button>
+  </div>
+</div>
+
+<script>
+  let form = document.getElementById("signup")
+  let signupBtn = document.getElementById("signupBtn")
+  let box=document.getElementById("box")
+  signupBtn.addEventListener("click", function () {
+    let email = form.querySelector("#email")
+    let password = form.querySelector("#password")
+    let name = form.querySelector("#name")
+
+    fetch('http://localhost:5000/api/v1/auth/signup',{
+      method:"POST",
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        "email":email.value,
+        "password":password.value,
+        "name":name.value
+      })
+    }).then(res => {
+      if(res.status === 400) {
+        res.json().then(value => {
+          text = box.innerHTML
+          box.innerHTML = `<div class="notification is-danger">${value['msg']}.\nQueres fazer login? vai para <a href="{{ url_for('main.login') }}">login</a>.</div>` + text
+        })
+      }
+      else {
+        res.json().then(value =>{
+          window.location.href = "http://localhost:5000/api/v1/web/login";
+        })
+      }
+    })
+
+  })
+
+</script>
+{% endblock %}

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>JobShop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css" />
+
+    <style>
+        .hero.is-primary {
+            background-color: #242424;
+        }
+
+        .hero.is-primary .navbar-link.is-active,
+        .hero.is-primary .navbar-link:hover,
+        .hero.is-primary a.navbar-item.is-active,
+        .hero.is-primary a.navbar-item:hover {
+            background-color: #202020;
+        }
+
+        .table th {
+            text-align: center;
+        }
+
+        .table td {
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <section class="hero is-primary is-fullheight">
+
+        <div class="hero-head">
+            <nav class="navbar">
+                <div class="container">
+                    <div id="navbarMenuHeroA" class="navbar-menu">
+                        <div class="navbar-end">
+                            {% if logged_in %}
+                            <a href="{{ url_for('main.welcome') }}" class="navbar-item">
+                                Inicio
+                            </a>
+                            {% endif %}
+                            {% if not logged_in %}
+                            <a href="{{ url_for('main.index') }}" class="navbar-item">
+                                Inicio
+                            </a>
+                            {% endif %}
+                            {% if not logged_in %}
+                                <a href="{{ url_for('main.login') }}" class="navbar-item">
+                                    Iniciar Sessão
+                                </a>
+                                <a href="{{ url_for('main.signup') }}" class="navbar-item">
+                                    Registar
+                                </a>
+                            {% endif %}
+                            {% if logged_in %}
+                            <a href="{{ url_for('main.verSimulacoes') }}" class="navbar-item">
+                                Ver Simulações
+                            </a>
+                            <a href="{{ url_for('main.criarSimulacoes') }}" class="navbar-item">
+                                Criar Simulações
+                            </a>
+                            <a href="#" class="navbar-item" id="sair">
+                                Sair
+                            </a>
+                            {% endif %}
+
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                {% block content %}
+                {% endblock %}
+            </div>
+        </div>
+    </section>
+</body>
+<script>
+    const sairBtn = document.getElementById('sair')
+
+    sairBtn.addEventListener('click', function (){
+        fetch('http://localhost:5000/api/v1/auth/logout',{
+            method: "POST",
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+        }).then(res => {
+            if (res.status === 200) {
+                window.location.href = 'http://localhost:5000/api/v1/web/login'
+            }
+        })
+    })
+
+</script>
+</html>

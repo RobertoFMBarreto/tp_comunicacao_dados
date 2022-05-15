@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class='columns is-mobile is-centered'>
+    <div class='column is-8'>
+        <div>
+            <h1 class='title'>Simulações</h1>
+            <hr>
+        </div>
+        <table class='table' style="width: 100%;">
+            <thead>
+            <tr>
+                <th style="text-align: center;">Id</th>
+                <th style="text-align: center;">Máquinas</th>
+                <th style="text-align: center;">Jobs</th>
+                <th style="text-align: center;">Operações</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody id="tableBody">
+
+
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+
+
+    function getCookieValue(name) {
+        let cookieArr = document.cookie.split(";");
+        for (let i = 0; i < cookieArr.length; i++) {
+            let cookiePair = cookieArr[i].split("=");
+            if (name === cookiePair[0].trim()) {
+                return decodeURIComponent(cookiePair[1]);
+            }
+        }
+        return null;
+    }
+
+    function get_cookie(name) {
+        return document.cookie.split(';').some(c => {
+            return c.trim().startsWith(name + '=');
+        });
+    }
+
+    function delete_cookie(name) {
+        if (get_cookie(name)) {
+            document.cookie = name + "=; Path=/api/v1/web;"+
+                ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
+        }
+    }
+
+    let token = getCookieValue('token')
+
+    function getToken() {
+        token = getCookieValue('token')
+    }
+
+    getSims()
+
+    async function getSims() {
+        fetch('http://localhost:5000/api/v1/simulations', {
+            method: "GET",
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+        }).then(res => {
+            if (res.status === 401) {
+                    window.location.href = 'http://localhost:5000/api/v1/web/login'
+                }
+            res.json().then(value => {
+                let simulations;
+                if (res.status === 401) {
+                    window.location.href = 'http://localhost:5000/api/v1/web/login'
+                } else {
+                    if (value["new_token"]) {
+                        delete_cookie('token', null, null)
+                        document.cookie = `token=${value['new_token']}; Path=/api/v1/web;`
+
+                        getToken()
+                    }
+                    simulations = value['simulacoes'];
+
+                    let text = '';
+                    for (let simulation of simulations) {
+                        text += `
+                        <tr>
+                          <td style="text-align: center;">${simulation['id']}</td>
+                          <td style="text-align: center;">${simulation['nMaquinas']}</td>
+                          <td style="text-align: center;">${simulation['nJobs']}</td>
+                          <td style="text-align: center;">${simulation['nOperacoes']}</td>
+                          <td>
+                            <button onclick="selectSim(${simulation['id']})" class="button is-info">Selecionar</button>
+                            <button onclick="deleteSim(${simulation['id']})" class="button is-danger">Eliminar</button>
+                          </td>
+                        </tr>\n`
+                    }
+                    const tableElement = document.getElementById('tableBody')
+                    tableElement.innerHTML = text
+                }
+            })
+
+        })
+    }
+
+    async function deleteSim(simId) {
+        await fetch('http://localhost:5000/api/v1/simulations/' + simId, {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`}
+        }).then(_ => {
+                getSims()
+            }
+        );
+    }
+
+    function selectSim(simId) {
+        window.location.href = `http://localhost:5000/api/v1/web/simulations/menu/${simId}`
+    }
+</script>
+{% endblock %}

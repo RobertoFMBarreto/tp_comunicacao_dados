@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 id="title" class="title">
+
+</h1>
+<script>
+
+
+
+      function getCookieValue(name) {
+        let cookieArr = document.cookie.split(";");
+        for(let i = 0; i < cookieArr.length; i++) {
+          let cookiePair = cookieArr[i].split("=");
+          if (name === cookiePair[0].trim()) {
+            return decodeURIComponent(cookiePair[1]);
+          }
+        }
+        return null;
+      }
+
+      function get_cookie(name){
+          return document.cookie.split(';').some(c => {
+              return c.trim().startsWith(name + '=');
+          });
+      }
+
+      function delete_cookie( name ) {
+        if( get_cookie( name ) ) {
+          document.cookie = name + "=; Path=/api/v1/web;"+
+            ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
+        }
+      }
+
+    let h1 = document.getElementById('title')
+    let token=getCookieValue('token')
+
+    function getToken() {
+        token = getCookieValue('token')
+    }
+    fetch('http://localhost:5000/api/v1/auth/info', {
+        method: "GET",
+        headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+    }).then(res => {
+        if(res.status===401){
+            window.location.href="http://localhost:5000/api/v1/web/login"
+        }
+
+        res.json().then(value => {
+
+            if (value["new_token"]){
+                delete_cookie('token', null, null)
+                document.cookie = `token=${value['new_token']}; Path=/api/v1/web;`
+
+                getToken()
+            }
+            h1.innerHTML = `Bem-vindo, ${value['user']['name']}!`
+        })
+
+    })
+
+
+</script>
+{% endblock %}

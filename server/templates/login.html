@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="column is-4 is-offset-4">
+  <h3 class="title">Login</h3>
+  <div class="box" id="box">
+
+    <form id="login">
+      <div class="field">
+        <div class="control">
+          <input class="input is-large" type="email" name="email" id="email" placeholder="Your Email" autofocus="">
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="control">
+          <input class="input is-large" type="password" name="password" id="password" placeholder="Your Password">
+        </div>
+      </div>
+      <div class="field">
+        <label class="checkbox">
+          <input type="checkbox" name="remember">
+          Remember me
+        </label>
+      </div>
+      <button class="button is-block is-info is-large is-fullwidth">Login</button>
+    </form>
+  </div>
+</div>
+<script>
+
+  function getCookieValue(name) {
+    let cookieArr = document.cookie.split(";");
+    for(let i = 0; i < cookieArr.length; i++) {
+      let cookiePair = cookieArr[i].split("=");
+      if (name === cookiePair[0].trim()) {
+        return decodeURIComponent(cookiePair[1]);
+      }
+    }
+    return null;
+  }
+
+  function get_cookie(name){
+      return document.cookie.split(';').some(c => {
+          return c.trim().startsWith(name + '=');
+      });
+  }
+
+  function delete_cookie( name ) {
+    if( get_cookie( name ) ) {
+      document.cookie = name + "=; Path=/api/v1/web;"+
+        ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
+    }
+  }
+
+  let form = document.getElementById("login")
+  let box=document.getElementById("box")
+  form.addEventListener("submit", function (e) {
+    e.preventDefault()
+    let email = form.querySelector("#email")
+    let password = form.querySelector("#password")
+
+    fetch('http://localhost:5000/api/v1/auth/login',{
+      method:"POST",
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        "email":email.value,
+        "password":password.value
+      })
+    }).then(res => {
+      if(res.status === 400) {
+        res.json().then(value => {
+          text = box.innerHTML
+          box.innerHTML = `<div class="notification is-danger">${value['msg']}</div>` + text
+        })
+      }
+      else {
+        res.json().then(value =>{
+
+          delete_cookie('token', null, null)
+          document.cookie=`token=${value['access_token']};`
+          window.location.href = "http://localhost:5000/api/v1/web/welcome";
+        })
+      }
+    })
+
+  })
+
+
+</script>
+{% endblock %}

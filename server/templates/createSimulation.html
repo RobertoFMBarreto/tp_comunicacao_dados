@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="column is-4 is-offset-4">
+    <h3 class="title">Criar Simulação</h3>
+    <div class="box" id="box">
+
+        <form id="form">
+            <div class="field">
+                <div class="control">
+                    <input class="input is-large" type="number" name="maquinas" id="maquinas"
+                           placeholder="número de máquinas" autofocus="">
+                </div>
+            </div>
+
+            <div class="field">
+                <div class="control">
+                    <input class="input is-large" type="number" name="jobs" id="jobs" placeholder="número de jobs">
+                </div>
+            </div>
+
+            <div class="field">
+                <div class="control">
+                    <input class="input is-large" type="number" name="operacoes" id="operacoes"
+                           placeholder="número de operações">
+                </div>
+            </div>
+            <button class="button is-block is-info is-large is-fullwidth">Submeter</button>
+        </form>
+    </div>
+</div>
+<script>
+    function getCookieValue(name) {
+        let cookieArr = document.cookie.split(";");
+        for (let i = 0; i < cookieArr.length; i++) {
+            let cookiePair = cookieArr[i].split("=");
+            if (name === cookiePair[0].trim()) {
+                return decodeURIComponent(cookiePair[1]);
+            }
+        }
+        return null;
+    }
+
+    function get_cookie(name) {
+        return document.cookie.split(';').some(c => {
+            return c.trim().startsWith(name + '=');
+        });
+    }
+
+    function delete_cookie(name) {
+        if (get_cookie(name)) {
+            document.cookie = name + "=; Path=/api/v1/web;"+
+                ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
+        }
+    }
+
+    let token = getCookieValue('token')
+
+    function getToken() {
+        token = getCookieValue('token')
+    }
+
+    let form = document.getElementById("form")
+    let box = document.getElementById("box")
+    form.addEventListener("submit", function (e) {
+        e.preventDefault()
+        let maquinas = form.querySelector("#maquinas")
+        let jobs = form.querySelector("#jobs")
+        let operacoes = form.querySelector("#operacoes")
+
+        fetch('http://localhost:5000/api/v1/simulations', {
+            method: "POST",
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+            body: JSON.stringify({
+                "maquinas": maquinas.value,
+                "jobs": jobs.value,
+                "operacoes": operacoes.value
+            })
+        }).then(res => {
+            if (res.status === 401) {
+                    window.location.href = 'http://localhost:5000/api/v1/web/login'
+                }
+            else if (res.status === 400) {
+                res.json().then(value => {
+                    text = box.innerHTML
+                    box.innerHTML = `<div class="notification is-danger">${value['msg']}</div>` + text
+                })
+            } else {
+                res.json().then(value => {
+                    if (value["new_token"]) {
+                        delete_cookie('token', null, null)
+                        document.cookie = `token=${value['new_token']}; Path=/api/v1/web;`
+                        getToken()
+                    }
+                    window.location.href = 'http://localhost:5000/api/v1/web/simulations'
+                })
+            }
+        })
+
+    })
+</script>
+{% endblock %}

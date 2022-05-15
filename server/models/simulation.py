@@ -1,4 +1,3 @@
-
 from .operation import Operation
 from .job import Job
 from .autoPlan import AutoPlan
@@ -13,6 +12,26 @@ class Simulation(db.Model, SerializerMixin):
     nJobs = db.Column(db.Integer, nullable=False)
     nOperacoes = db.Column(db.Integer, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    @staticmethod
+    def checkTableCompleted(simId, nJobs, nOperacoes, nMaquinas):
+        jobs = Job.query.filter_by(sim_id=simId).all()
+
+        if len(jobs) < nJobs:
+            return False
+
+        for job in jobs:
+            operacoes = Operation.query.filter_by(job_id=job.id).all()
+            if len(operacoes) < nOperacoes:
+                return False
+
+            existMachines = [operacao.machine for operacao in operacoes]
+            machines = [x for x in range(0, nMaquinas)]
+            machinesEmFalta = list(set(machines) - set(existMachines))
+            if len(machinesEmFalta) > 0:
+                return False
+
+        return True
 
     @staticmethod
     def checkTable(simId, nJobs, nOperacoes, nMaquinas):
@@ -68,9 +87,10 @@ class Simulation(db.Model, SerializerMixin):
             operations = Operation.query.filter_by(
                 job_id=job.id).order_by(Operation.number).all()
             for i in range(0, len(operations)):
-                if operations[i].number != opId and operations[i].machine != -1 and operations[i].machine == machine and operations[i].initTime != -1:
+                if operations[i].number != opId and operations[i].machine != -1 and operations[i].machine == machine and \
+                        operations[i].initTime != -1:
                     opFinishTime = operations[i].initTime + \
-                        operations[i].duration
+                                   operations[i].duration
                     if initTime >= opFinishTime or finishTime <= operations[i].initTime:
                         pass
                     else:
@@ -107,7 +127,7 @@ class Simulation(db.Model, SerializerMixin):
         for i in range(opId + 1, len(operations)):
             nextOperation = operations[i]
             if nextOperation.initTime != -1:
-                print(nextOperation.initTime, finishTime)
+
                 if nextOperation.initTime >= finishTime:
                     return -1
                 else:
@@ -118,25 +138,25 @@ class Simulation(db.Model, SerializerMixin):
     def checkPlanoProducao(simId):
         jobs = Job.query.filter_by(sim_id=simId).all()
         for job in jobs:
-            print(job.name, job.id)
+
         valuesFalta = []
         for job in jobs:
             operations = Operation.query.filter_by(job_id=job.id).all()
             for op in operations:
-                print(op.number, op.initTime)
+
             for operation in operations:
                 if operation.initTime == -1:
                     valuesFalta.append(
                         f"Job {job.name} - Operacao {operation.number}")
 
         if len(valuesFalta) > 0:
-            msg = 'Erro, as operacoes:\n'
+            msg = 'Erro, operações em falta:\n'
             for value in valuesFalta:
                 msg += f"\t->{value}\n"
 
             return -1, msg
         else:
-            return 0, "OK"
+            return 0, "A tabela encontra-se correta"
 
     @staticmethod
     def getMaxTimeJobDuration(jobs):
@@ -147,8 +167,8 @@ class Simulation(db.Model, SerializerMixin):
         for job in jobs:
             operations = Operation.query.filter_by(
                 job_id=job.id).order_by(Operation.number).all()
-            duration = operations[len(operations)-1].duration
-            initTime = operations[len(operations)-1].initTime
+            duration = operations[len(operations) - 1].duration
+            initTime = operations[len(operations) - 1].initTime
             if initTime + duration > maxTime['time']:
                 maxTime = {'job': job.name,
                            'time': duration + initTime}
@@ -164,19 +184,21 @@ class Simulation(db.Model, SerializerMixin):
                 job_id=job.id).order_by(Operation.number).all()
             for i in range(0, len(operations)):
                 if i in operationsText.keys():
-                    operationsText[i] += f'\t({job.name},{i},{operations[i].machine},{operations[i].initTime},{operations[i].duration},{operations[i].initTime+operations[i].duration})'
+                    operationsText[
+                        i] += f'\t({job.name},{i},{operations[i].machine},{operations[i].initTime},{operations[i].duration},{operations[i].initTime + operations[i].duration})'
                 else:
-                    operationsText[i] = f'\t({job.name},{i},{operations[i].machine},{operations[i].initTime},{operations[i].duration},{operations[i].initTime+operations[i].duration})'
+                    operationsText[
+                        i] = f'\t({job.name},{i},{operations[i].machine},{operations[i].initTime},{operations[i].duration},{operations[i].initTime + operations[i].duration})'
 
         for operationId, operation in operationsText.items():
             table += f'Operacao {operationId}:{operation}\n'
 
-        f = open(basePath+f"/tables/sim{id}_plano_producao.txt", "w+")
+        f = open(basePath + f"/tables/sim{id}_plano_producao.txt", "w+")
         f.write(table)
         f.close()
-        return basePath+f"/tables/sim{id}_plano_producao.txt"
+        return basePath + f"/tables/sim{id}_plano_producao.txt"
 
-    def addOpPlanoProducao(jobId, opId, job,  initTime,  operation, sim):
+    def addOpPlanoProducao(jobId, opId, job, initTime, operation, sim):
         isAfterNextOperation = Simulation.isAfterLastOperation(
             initTime, jobId, opId)
         if isAfterNextOperation != -1:
@@ -189,7 +211,7 @@ class Simulation(db.Model, SerializerMixin):
 
         jobs = Job.query.filter_by(sim_id=sim.id).all()
         indexJob, indexOp = Simulation.isMachineBeingUsed(
-            jobs, opId, operation.machine, initTime, (initTime+operation.duration))
+            jobs, opId, operation.machine, initTime, (initTime + operation.duration))
 
         if indexJob == -1 or indexOp == -1:
             operation.initTime = initTime
@@ -233,9 +255,6 @@ class Simulation(db.Model, SerializerMixin):
                             'job': assigned_task.job,
                             'start': assigned_task.start
                         }]
-
-            for operationId, operations in operationsDict.items():
-                print(operationId, operations)
 
             for operationId, operations in operationsDict.items():
                 for operation in operations:
