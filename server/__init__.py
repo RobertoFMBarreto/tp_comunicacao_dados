@@ -2,7 +2,9 @@ from datetime import datetime, timezone, timedelta
 
 from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager, get_jwt, get_jwt_identity, create_access_token, set_access_cookies
+from flask_jwt_extended import JWTManager, get_jwt, get_jwt_identity, create_access_token
+
+
 
 # Change this!
 
@@ -34,7 +36,7 @@ def create_app():
         try:
             exp_timestamp = get_jwt()["exp"]
             now = datetime.now(timezone.utc)
-            target_timestamp = datetime.timestamp(now + timedelta(minutes=60))
+            target_timestamp = datetime.timestamp(now + timedelta(minutes=1))
 
             if target_timestamp > exp_timestamp:
                 if response.is_json and response.status_code == 200:

@@ -42,7 +42,10 @@ class Simulation(db.Model, SerializerMixin):
 
         if nJobs != len(jobs):
             jobsNumbers = [x for x in range(0, nJobs)]
-            jobsEmFalta = [x.name for x in jobs if x.name not in jobs.keys()]
+            jobsIds = [int(x.name) for x in jobs ]
+            jobsEmFalta = list(
+                set(jobsNumbers) - set(jobsIds))
+
             if len(jobsEmFalta) > 0:
                 if len(jobsEmFalta) > 1:
                     return f"Os jobs {jobsEmFalta} estão em falta", 400
@@ -56,7 +59,7 @@ class Simulation(db.Model, SerializerMixin):
             allOperations.append(operations)
             operationsNumbers = [x for x in range(0, nOperacoes)]
             operationsIds = [
-                x.number for x in Operation.query.filter_by(job_id=job.id).all()]
+                int(x.number) for x in Operation.query.filter_by(job_id=job.id).all()]
             operationsEmFalta = list(
                 set(operationsNumbers) - set(operationsIds))
             if len(operationsEmFalta) > 0:
@@ -69,7 +72,7 @@ class Simulation(db.Model, SerializerMixin):
         for job in jobs:
             operations = Operation.query.filter_by(job_id=job.id).all()
             existMachines = [
-                operation.machine for operation in operations]
+                int(operation.machine) for operation in operations]
             machines = [x for x in range(0, nMaquinas)]
             machinesEmFalta = list(set(machines) - set(existMachines))
             if len(machinesEmFalta) > 0:
@@ -137,12 +140,11 @@ class Simulation(db.Model, SerializerMixin):
     @staticmethod
     def checkPlanoProducao(simId):
         jobs = Job.query.filter_by(sim_id=simId).all()
-        for job in jobs:
+
 
         valuesFalta = []
         for job in jobs:
             operations = Operation.query.filter_by(job_id=job.id).all()
-            for op in operations:
 
             for operation in operations:
                 if operation.initTime == -1:

@@ -63,6 +63,9 @@
                             <a href="{{ url_for('main.criarSimulacoes') }}" class="navbar-item">
                                 Criar Simulações
                             </a>
+                            <a id="apagarConta" class="navbar-item">
+                                Apagar Conta
+                            </a>
                             <a href="#" class="navbar-item" id="sair">
                                 Sair
                             </a>
@@ -88,6 +91,22 @@
     sairBtn.addEventListener('click', function (){
         fetch('http://localhost:5000/api/v1/auth/logout',{
             method: "POST",
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+        }).then(res => {
+            if (res.status === 200) {
+                window.location.href = 'http://localhost:5000/api/v1/web/login'
+            }
+        })
+    })
+
+</script>
+
+<script>
+    const apagarBtn = document.getElementById('apagarConta')
+
+    apagarBtn.addEventListener('click', function (){
+        fetch('http://localhost:5000/api/v1/auth/apagarConta',{
+            method: "DELETE",
             headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
         }).then(res => {
             if (res.status === 200) {

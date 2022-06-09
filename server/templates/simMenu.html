@@ -61,6 +61,9 @@
                         <a href="{{ url_for('main.criarSimulacoes') }}" class="navbar-item">
                             Criar Simulações
                         </a>
+                        <a id="apagarConta" class="navbar-item">
+                                Apagar Conta
+                            </a>
                         <a href="#" class="navbar-item" id="sair">
                             Sair
                         </a>
@@ -102,6 +105,21 @@
     </div>
 </section>
 </body>
+<script>
+    const apagarBtn = document.getElementById('apagarConta')
+
+    apagarBtn.addEventListener('click', function (){
+        fetch('http://localhost:5000/api/v1/auth/apagarConta',{
+            method: "DELETE",
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+        }).then(res => {
+            if (res.status === 200) {
+                window.location.href = 'http://localhost:5000/api/v1/web/login'
+            }
+        })
+    })
+
+</script>
 <script>
     function getCookieValue(name) {
         let cookieArr = document.cookie.split(";");
@@ -641,7 +659,7 @@
             if (res.status === 401) {
                 window.location.href = 'http://localhost:5000/api/v1/web/login'
             } else if (res.status === 400) {
-                res.text().then(value => {
+                res.json().then(value => {
                     if (value["new_token"]) {
                         delete_cookie('token', null, null)
                         document.cookie = `token=${value['new_token']}; Path=/api/v1/web;`
